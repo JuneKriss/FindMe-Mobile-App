@@ -1,45 +1,20 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react';
+import { View } from 'react-native';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import RegisterScreen from './src/auth/RegisterScreen';
+import LoginScreen from './src/auth/LoginScreen';
+import SplashScreen from './src/splash/SplashScreen';
+import RoleScreen from './src/auth/RoleScreen';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function App() {
+  const [screen, setScreen] = useState('Role');
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
+    <View style={{ flex: 1 }}>
+      {screen === 'Login' && <LoginScreen setScreen={setScreen} />}
+      {screen === 'Register' && <RegisterScreen setScreen={setScreen} />}
+      {screen === 'Spash' && <SplashScreen setScreen={setScreen} />}
+      {screen === 'Role' && <RoleScreen setScreen={setScreen} />}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
-
-export default App;
