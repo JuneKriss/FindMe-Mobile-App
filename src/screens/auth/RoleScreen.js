@@ -1,15 +1,48 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
+// API IMPORT
+import { loadToken } from '../../api/api';
+import { updateRole } from '../../api/accountApi';
 
-const RoleSelection = () => {
+const RoleSelection = ({ setScreen }) => {
+  // Load token when component mounts
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await loadToken();
+        console.log('Token loaded successfully');
+      } catch (err) {
+        console.log('Error loading token:', err.message);
+      }
+    };
+    init();
+  }, []);
+
+  const handleRoleSelect = async role => {
+    try {
+      const update = await updateRole(role);
+      console.log('Role update response:', update.data);
+
+      if (update.data.role === 'family') setScreen('family');
+      else setScreen('volunteer');
+    } catch (error) {
+      console.log('Login error details:', error.response || error.message);
+      Alert.alert('Error', `Something went wrong: ${error.message}`);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.textLogo}>FindMe</Text>
       <Text style={styles.subText}>Choose your role to continue</Text>
       <Text style={styles.pickText}>Are you acting as:</Text>
+
       {/* Family Card */}
-      <TouchableOpacity style={styles.card} onPress={() => setScreen('Family')}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => handleRoleSelect('family')}
+      >
         <View style={styles.row}>
           <View style={[styles.iconBox, { backgroundColor: '#4266BE' }]}>
             <Icon name="user" size={30} color="#fff" />
@@ -22,10 +55,11 @@ const RoleSelection = () => {
           </View>
         </View>
       </TouchableOpacity>
+
       {/* Volunteer Card */}
       <TouchableOpacity
         style={styles.card}
-        onPress={() => setScreen('Volunteer')}
+        onPress={() => handleRoleSelect('volunteer')}
       >
         <View style={styles.row}>
           <View style={[styles.iconBox, { backgroundColor: '#333' }]}>
@@ -39,6 +73,7 @@ const RoleSelection = () => {
           </View>
         </View>
       </TouchableOpacity>
+
       <View style={{ alignItems: 'center', marginTop: 20 }}>
         <Text style={styles.footerText}>
           Please select how you’ll be using FindMe today.

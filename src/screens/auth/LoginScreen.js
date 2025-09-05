@@ -1,16 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Alert,
+  StatusBar,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
+import { login } from '../../api/authApi';
 
 const LoginScreen = ({ setScreen }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState();
+
+  const HandleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert('Error', 'Please enter both username and password');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await login(username, password);
+      if (response?.access) {
+        console.log('Login Success', response);
+        Alert.alert('Login Successfully');
+        setScreen('Role');
+      } else {
+        Alert.alert('Error', 'Invalid username or password');
+      }
+    } catch (error) {
+      console.log('Login error details:', error.response || error.message);
+      Alert.alert('Error', `Something went wrong: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
       <Icon name="map-pin" size={200} style={styles.icon} />
       <Text style={styles.title}>FindMe</Text>
       <Text style={styles.quote}>
@@ -24,8 +55,11 @@ const LoginScreen = ({ setScreen }) => {
         <Icon name="mail" size={20} color="#555" style={styles.inputIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="Username"
           placeholderTextColor="#aaa"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
         />
       </View>
       {/* Password Input */}
@@ -36,11 +70,19 @@ const LoginScreen = ({ setScreen }) => {
           placeholder="Password"
           placeholderTextColor="#aaa"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
       {/* Login Button */}
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={HandleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Logging in...' : 'Login'}
+        </Text>
       </TouchableOpacity>
       {/* Navigate to Register */}
       <TouchableOpacity onPress={() => setScreen('Register')}>

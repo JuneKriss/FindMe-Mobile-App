@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  StatusBar,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
 
@@ -44,6 +45,7 @@ const RegisterScreen = ({ setScreen }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
       <Icon name="map-pin" size={180} style={styles.icon} />
       <Text style={styles.title}>FindMe</Text>
       <Text style={styles.quote}>
