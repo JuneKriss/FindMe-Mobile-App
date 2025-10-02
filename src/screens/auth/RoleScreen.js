@@ -4,28 +4,31 @@ import Icon from '@react-native-vector-icons/feather';
 // API IMPORT
 import { loadToken } from '../../api/api';
 import { updateRole } from '../../api/accountApi';
+import { getAccount } from '../../api/accountApi';
 
 const RoleSelection = ({ setScreen }) => {
   // Load token when component mounts
   useEffect(() => {
-    const init = async () => {
-      try {
-        await loadToken();
-        console.log('Token loaded successfully');
-      } catch (err) {
-        console.log('Error loading token:', err.message);
-      }
-    };
-    init();
+    loadToken()
+      .then(() => console.log('Token loaded successfully'))
+      .catch(err => console.log('Error loading token:', err.message));
   }, []);
 
   const handleRoleSelect = async role => {
     try {
-      const update = await updateRole(role);
-      console.log('Role update response:', update.data);
+      const { data } = await updateRole(role);
 
-      if (update.data.role === 'family') setScreen('family');
-      else setScreen('volunteer');
+      if (data.role === 'family') {
+        const res = await getAccount();
+
+        if (res.data.family_profile) {
+          setScreen('family');
+        } else {
+          setScreen('familyProfile');
+        }
+      } else {
+        setScreen('volunteer');
+      }
     } catch (error) {
       console.log('Login error details:', error.response || error.message);
       Alert.alert('Error', `Something went wrong: ${error.message}`);

@@ -5,7 +5,12 @@ import Icon from '@react-native-vector-icons/feather';
 const HeaderComponent = ({ setScreen, active }) => {
   const menuItems = [
     { name: 'family', label: 'Home', icon: 'home', screen: 'family' },
-    { name: 'report', label: 'Report', icon: 'plus-square', screen: 'report' },
+    {
+      name: 'report',
+      label: 'Report',
+      icon: 'plus-square',
+      screen: 'reportCase',
+    },
     {
       name: 'notification',
       label: 'Notification',
@@ -26,12 +31,12 @@ const HeaderComponent = ({ setScreen, active }) => {
           <Icon
             name={item.icon}
             size={22}
-            color={active === item.screen ? '#015dec' : '#7f8c8d'}
+            color={active === item.screen ? '#4266BE' : '#000'}
           />
           <Text
             style={[
               style.label,
-              { color: active === item.screen ? '#015dec' : '#7f8c8d' },
+              { color: active === item.screen ? '#4266BE' : '#000' },
             ]}
           >
             {item.label}

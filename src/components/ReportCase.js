@@ -9,15 +9,17 @@ import {
   StatusBar,
   View,
   Alert,
+  Platform,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderComponent from './header';
-//API
-import { createReport } from '../api/reportApi';
+// API
+import { createReport, uploadReportMedia } from '../api/reportApi';
 
 const ReportCaseScreen = ({ setScreen }) => {
-  //stores all input data
+  // Stores all input data
   const [form, setForm] = useState({
     full_name: '',
     age: '',
@@ -27,28 +29,28 @@ const ReportCaseScreen = ({ setScreen }) => {
     clothing: '',
     notes: '',
   });
-  const [photo, setPhoto] = useState(null);
+
+  const [photos, setPhotos] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  //e update niya any field nga di kailangan daghan useState
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
+  // Pick multiple images
   const pickImage = () => {
     launchImageLibrary(
-      { mediaType: 'photo', maxWidth: 800, maxHeight: 800, quality: 1 },
+      { mediaType: 'photo', selectionLimit: 0, quality: 1 },
       response => {
-        if (response.didCancel) return;
-        if (response.errorMessage) {
-          console.error('ImagePicker Error:', response.errorMessage);
-        } else {
-          setPhoto(response.assets[0].uri);
+        if (!response.didCancel && !response.errorMessage) {
+          const newPhotos = response.assets.map(asset => asset.uri);
+          setPhotos(prev => [...prev, ...newPhotos]);
         }
       },
     );
   };
-  //e reset niya sa empty form pag human submit
+
+  // Reset form after submit
   const resetForm = () => {
     setForm({
       full_name: '',
@@ -59,134 +61,145 @@ const ReportCaseScreen = ({ setScreen }) => {
       clothing: '',
       notes: '',
     });
-    setPhoto(null);
+    setPhotos([]);
   };
 
-  const handleSubmit = () => {
-    const formData = new FormData();
-    Object.entries(form).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+  const handleSubmit = async () => {
+    try {
+      // Create report (wala pic)
+      const reportRes = await createReport(form);
+      const reportId = reportRes.data.report_id;
 
-    if (photo) {
-      formData.append('photo', {
-        uri: photo,
-        name: 'report-photo.jpg',
-        type: 'image/jpeg',
-      });
+      // Upload photos separately (if mag add ug pic)
+      if (photos.length > 0) {
+        for (const uri of photos) {
+          const formData = new FormData();
+          formData.append('report', reportId);
+          formData.append('file', {
+            uri,
+            name: `report-${Date.now()}.jpg`,
+            type: 'image/jpeg',
+          });
+          await uploadReportMedia(formData);
+        }
+      }
+
+      resetForm();
+      Alert.alert('Success', 'Report submitted successfully!');
+      setScreen('family');
+    } catch (err) {
+      console.error(
+        'Error creating report:',
+        err.response?.data || err.message,
+      );
+      Alert.alert('Error', 'Failed to submit report.');
     }
-
-    createReport(formData)
-      .then(res => {
-        console.log('Report created:', res.data);
-        resetForm();
-        Alert.alert('Success', 'Report submitted successfully!');
-        setScreen('family');
-      })
-      .catch(err => {
-        console.error(
-          'Error creating report:',
-          err.response?.data || err.message,
-        );
-        Alert.alert('Error', 'Failed to submit report.');
-      });
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-        <Text style={styles.title}>Report Missing Case</Text>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#f8f9fb' }}
+      edges={['top', 'bottom']}
+    >
+      <View style={{ flex: 1 }}>
+        <ScrollView style={styles.container}>
+          <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
+          <Text style={styles.title}>Report Missing Case</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          value={form.full_name}
-          onChangeText={val => handleChange('full_name', val)}
-        />
-
-        <View style={styles.wrapper}>
           <TextInput
-            style={[styles.input, { width: 160 }]}
-            placeholder="Age"
-            keyboardType="numeric"
-            value={form.age}
-            onChangeText={val => handleChange('age', val)}
+            style={styles.input}
+            placeholder="Full Name"
+            value={form.full_name}
+            onChangeText={val => handleChange('full_name', val)}
+          />
+
+          <View style={styles.wrapper}>
+            <TextInput
+              style={[styles.input, { width: 160 }]}
+              placeholder="Age"
+              keyboardType="numeric"
+              value={form.age}
+              onChangeText={val => handleChange('age', val)}
+            />
+            <TextInput
+              style={[styles.input, { width: 160 }]}
+              placeholder="Gender"
+              value={form.gender}
+              onChangeText={val => handleChange('gender', val)}
+            />
+          </View>
+
+          <View style={styles.wrapper}>
+            <TouchableOpacity
+              style={[styles.input, { width: 160, justifyContent: 'center' }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text>
+                {form.last_seen_date
+                  ? form.last_seen_date
+                  : 'Select Last Seen Date'}
+              </Text>
+            </TouchableOpacity>
+            <TextInput
+              style={[styles.input, { width: 160 }]}
+              placeholder="Last Seen Location"
+              value={form.last_seen_location}
+              onChangeText={val => handleChange('last_seen_location', val)}
+            />
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Clothing Description"
+            value={form.clothing}
+            onChangeText={val => handleChange('clothing', val)}
           />
           <TextInput
-            style={[styles.input, { width: 160 }]}
-            placeholder="Gender"
-            value={form.gender}
-            onChangeText={val => handleChange('gender', val)}
+            style={[styles.input, { height: 80 }]}
+            placeholder="Additional Notes"
+            value={form.notes}
+            onChangeText={val => handleChange('notes', val)}
+            multiline
           />
-        </View>
 
-        <View style={styles.wrapper}>
-          <TouchableOpacity
-            style={[styles.input, { width: 160, justifyContent: 'center' }]}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text>
-              {form.last_seen_date
-                ? form.last_seen_date
-                : 'Select Last Seen Date'}
-            </Text>
+          <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
+            <Text style={{ color: '#888' }}>Tap to Upload Photos</Text>
           </TouchableOpacity>
-          <TextInput
-            style={[styles.input, { width: 160 }]}
-            placeholder="Last Seen Location"
-            value={form.last_seen_location}
-            onChangeText={val => handleChange('last_seen_location', val)}
-          />
-        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Clothing Description"
-          value={form.clothing}
-          onChangeText={val => handleChange('clothing', val)}
-        />
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="Additional Notes"
-          value={form.notes}
-          onChangeText={val => handleChange('notes', val)}
-          multiline
-        />
+          <ScrollView horizontal style={{ marginVertical: 10 }}>
+            {photos.map((uri, idx) => (
+              <Image key={idx} source={{ uri }} style={styles.uploadedImage} />
+            ))}
+          </ScrollView>
 
-        <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.uploadedImage} />
-          ) : (
-            <Text style={{ color: '#888' }}>Tap to Upload Photo</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            <Text style={styles.submitText}>Submit Report</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitText}>Submit Report</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* DateTimePicker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            form.last_seen_date ? new Date(form.last_seen_date) : new Date()
-          }
-          mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              const isoDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
-              handleChange('last_seen_date', isoDate);
+        {/* Date Picker */}
+        {showDatePicker && (
+          <DateTimePicker
+            value={
+              form.last_seen_date ? new Date(form.last_seen_date) : new Date()
             }
-          }}
-        />
-      )}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+            onChange={(event, selectedDate) => {
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false); // auto close on Android
+              }
+              if (selectedDate) {
+                const isoDate = selectedDate.toISOString().split('T')[0];
+                handleChange('last_seen_date', isoDate);
+              }
+            }}
+          />
+        )}
 
-      <HeaderComponent setScreen={setScreen} active="report" />
-    </View>
+        <HeaderComponent setScreen={setScreen} active="report" />
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -199,7 +212,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    marginTop: 50,
+    marginTop: 8,
     fontSize: 22,
     fontWeight: '700',
     marginBottom: 20,
@@ -230,11 +243,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  uploadedImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
+  uploadedImage: { width: 80, height: 80, marginRight: 10, borderRadius: 6 },
   submitButton: {
     backgroundColor: '#4266BE',
     borderRadius: 8,

@@ -16,30 +16,36 @@ const RegisterScreen = ({ setScreen }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [full_name, setFullname] = useState('');
   const role = 'family';
 
-  const handleSignUp = async () => {
-    if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+  const handleRegister = async () => {
+    if (!username || !email || !password || !full_name) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
-      const data = { username, email, password, role };
-      const res = await createAccount(data);
-      if (res.status === 201 || res.status === 200) {
-        Alert.alert('Success', 'Account created successfully');
-        setScreen('Login'); // go back to login screen
+      const res = await createAccount({
+        username,
+        email,
+        password,
+        full_name,
+        role,
+      });
+      console.log('Register response:', res);
+
+      const userId = res.account_id || res.data?.account_id; // ✅ depends on backend
+      if (!userId) {
+        Alert.alert('Error', 'No account_id returned from server');
+        return;
       }
+
+      Alert.alert('Success', 'Account created. Please verify your email.');
+      setScreen('Verify', { userId, email }); // ✅ pass as props
     } catch (err) {
-      console.log(err.response?.data || err.message);
-      Alert.alert('Error', 'Failed to create account');
+      console.log('Register error:', err.response?.data || err.message);
+      Alert.alert('Error', err.response?.data?.error || 'Registration failed');
     }
   };
 
@@ -59,10 +65,21 @@ const RegisterScreen = ({ setScreen }) => {
         <Icon name="user" size={20} color="#555" style={styles.inputIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Name"
+          placeholder="Username"
           placeholderTextColor="#aaa"
           value={username}
           onChangeText={setUsername}
+        />
+      </View>
+      {/* Full Name */}
+      <View style={styles.inputContainer}>
+        <Icon name="lock" size={20} color="#555" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Full Name"
+          placeholderTextColor="#aaa"
+          value={full_name}
+          onChangeText={setFullname}
         />
       </View>
       {/* Email Input */}
@@ -89,20 +106,8 @@ const RegisterScreen = ({ setScreen }) => {
           onChangeText={setPassword}
         />
       </View>
-      {/* Confirm Password Input */}
-      <View style={styles.inputContainer}>
-        <Icon name="lock" size={20} color="#555" style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          placeholderTextColor="#aaa"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-        />
-      </View>
       {/* Login Button */}
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+      <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
       {/* Navigate to Register */}

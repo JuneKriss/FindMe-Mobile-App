@@ -7,39 +7,41 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderComponent from '../../components/header';
-import { getMe } from '../../api/accountApi';
+import { getAccount } from '../../api/accountApi';
 import { getReports } from '../../api/reportApi';
 
-const FamilyHomeScreen = ({ setScreen }) => {
-  const [user, setUser] = useState({ username: '' });
+const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
+  const [user, setUser] = useState(null);
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const fetchUser = async () => {
+    try {
+      const response = await getAccount();
+      setUser(response.data);
+    } catch (err) {
+      Alert.alert('Error', 'Could not load user info');
+    }
+  };
+
+  const fetchReports = async () => {
+    try {
+      const response = await getReports();
+      setMyReports(response.data);
+    } catch (err) {
+      Alert.alert('Error', 'Could not load reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await getMe();
-        console.log('Fetched user:', response.data);
-        setUser(response.data);
-      } catch (err) {
-        console.log('Error fetching user:', err.response || err.message);
-      }
-    };
-
-    const fetchReports = async () => {
-      try {
-        const response = await getReports();
-        console.log('Fetched reports:', response.data);
-        setMyReports(response.data); // ✅ set backend reports
-      } catch (err) {
-        console.log('Error fetching reports:', err.response || err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUser();
     fetchReports();
   }, []);
@@ -67,76 +69,102 @@ const FamilyHomeScreen = ({ setScreen }) => {
           {item.status}
         </Text>
 
-        <TouchableOpacity style={style.viewButton}>
+        <TouchableOpacity
+          style={style.viewButton}
+          onPress={() => {
+            setSelectedReportId(item.report_id);
+            setScreen('reportDetails');
+          }}
+        >
           <Text style={style.viewText}>View</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: '#F9FBFF',
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
-      }}
-    >
-      {/* Main Content */}
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={myReports}
-          keyExtractor={item => item.report_id.toString()}
-          renderItem={renderReport}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <>
-              <View style={style.header}>
-                <View>
-                  <Text style={style.greeting}>Welcome Back,</Text>
-                  <Text style={style.username}>{user.username || '...'}</Text>
-                </View>
-              </View>
-
-              <View style={style.summaryCard}>
-                <Icon name="file-text" size={28} color="#015dec" />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={style.summaryText}>
-                    You have {myReports.length} active reports
-                  </Text>
-                  <TouchableOpacity onPress={() => setScreen('report')}>
-                    <Text style={style.addNew}>+ Add New Report</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <Text style={style.sectionTitle}>My Reports</Text>
-            </>
-          }
-          ListEmptyComponent={
-            <View style={style.emptyState}>
-              <Icon name="file" size={40} color="#bdc3c7" />
-              <Text style={style.emptyText}>No reports submitted yet</Text>
-            </View>
-          }
-        />
+  if (loading) {
+    return (
+      <View style={style.center}>
+        <ActivityIndicator size="large" color="#015dec" />
       </View>
+    );
+  }
 
-      {/* Bottom Navigation */}
-      <HeaderComponent setScreen={setScreen} active="family" />
-    </View>
+  return (
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#f8f9fb' }}
+      edges={['top', 'bottom']}
+    >
+      <View style={style.container}>
+        {/* Main Content */}
+        <View style={style.content}>
+          <FlatList
+            data={myReports}
+            keyExtractor={item => item.report_id.toString()}
+            renderItem={renderReport}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 80 }}
+            ListHeaderComponent={
+              <>
+                <View style={style.header}>
+                  <View>
+                    <Text style={style.greeting}>Welcome Back,</Text>
+                    <Text style={style.username}>{user?.full_name}</Text>
+                  </View>
+                </View>
+
+                <View style={style.summaryCard}>
+                  <Icon name="file-text" size={28} color="#015dec" />
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={style.summaryText}>
+                      You have {myReports.length} active reports
+                    </Text>
+                    <TouchableOpacity onPress={() => setScreen('reportCase')}>
+                      <Text style={style.addNew}>+ Add New Report</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <Text style={style.sectionTitle}>My Reports</Text>
+              </>
+            }
+            ListEmptyComponent={
+              <View style={style.emptyState}>
+                <Icon name="file" size={40} color="#bdc3c7" />
+                <Text style={style.emptyText}>No reports submitted yet</Text>
+              </View>
+            }
+          />
+        </View>
+
+        {/* Bottom Navigation */}
+        <HeaderComponent setScreen={setScreen} active="family" />
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default FamilyHomeScreen;
 
 const style = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FBFF',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
+  },
+  content: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     margin: 16,
-    marginTop: 20,
   },
   greeting: {
     fontSize: 14,
