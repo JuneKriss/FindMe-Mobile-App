@@ -19,6 +19,7 @@ export const loadToken = async () => {
     API.defaults.headers.common.Authorization = `Bearer ${token}`;
     console.log('Token loaded into API headers:', token);
   }
+  return token;
 };
 
 export default API;

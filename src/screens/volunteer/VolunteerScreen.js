@@ -5,79 +5,166 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  StatusBar,
+  Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderComponent from '../../components/header';
-//API
 import { getAccount } from '../../api/accountApi';
-import { getReports } from '../../api/reportApi';
+import {
+  getAvailableReports,
+  assistReport,
+  getMyAssistedReports,
+} from '../../api/reportApi';
 
-const VolunteerHomeScreen = ({ setScreen }) => {
+const VolunteerHomeScreen = ({ setScreen, setSelectedReportId }) => {
   const [user, setUser] = useState(null);
   const [reports, setReports] = useState([]);
+  const [assistingReports, setAssistingReports] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const fetchUser = async () => {
+    try {
+      const res = await getAccount();
+      setUser(res.data);
+    } catch (err) {
+      Alert.alert('Error', 'Could not load user info');
+    }
+  };
 
   const fetchReports = async () => {
     try {
-      const response = await getReports();
-      setReports(response.data);
+      const res = await getAvailableReports();
+      // Only Verified reports
+      const verifiedReports = res.data.filter(r => r.status === 'Verified');
+      setReports(verifiedReports || []);
     } catch (err) {
-      console.error('Error fetching data', err.message);
-    } finally {
-      setLoading(false);
+      Alert.alert('Error', 'Could not load reports');
+    }
+  };
+
+  const fetchAssistedReports = async () => {
+    try {
+      const res = await getMyAssistedReports();
+      const assistedIds = res.data.map(r => r.report_id);
+      setAssistingReports(assistedIds);
+    } catch (err) {
+      console.log('Error fetching assisted reports');
     }
   };
 
   useEffect(() => {
-    fetchReports();
+    const loadData = async () => {
+      await fetchUser();
+    };
+    loadData();
   }, []);
 
-  // fake stats
+  useEffect(() => {
+    if (user) {
+      setLoading(true);
+      Promise.all([fetchReports(), fetchAssistedReports()]).finally(() =>
+        setLoading(false),
+      );
+    }
+  }, [user]);
+
+  const handleAssist = async reportId => {
+    try {
+      if (assistingReports.includes(reportId)) {
+        Alert.alert('Notice', 'You are already assisting this report.');
+        return;
+      }
+
+      await assistReport(reportId);
+
+      setReports(prev => prev.filter(r => r.report_id !== reportId));
+      setAssistingReports(prev => [...prev, reportId]);
+
+      Alert.alert('Success', 'You are now assisting this case.');
+      setSelectedReportId(reportId);
+      setScreen('volunteerDetails');
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        err.response?.data?.detail || 'Failed to assist this report.',
+      );
+    }
+  };
+
+  const missingCount = reports.filter(r => r.status === 'Verified').length;
+  const assistedCount = assistingReports.length;
+  const foundCount = reports.filter(
+    r => r.status === 'Found' || r.status === 'Closed - Safe',
+  ).length;
+
   const stats = [
-    { label: 'Missing', count: 1, color: 'red', icon: 'alert-circle' },
-    { label: 'Ongoing', count: 2, color: 'orange', icon: 'clock' },
-    { label: 'Found', count: 0, color: 'green', icon: 'check-circle' },
+    {
+      label: 'Missing',
+      count: missingCount,
+      color: 'red',
+      icon: 'alert-circle',
+    },
+    { label: 'Assisted', count: assistedCount, color: 'orange', icon: 'clock' },
+    { label: 'Found', count: foundCount, color: 'green', icon: 'check-circle' },
   ];
 
-  const renderReport = ({ item }) => (
-    <View style={style.card}>
-      <View style={style.infoContainer}>
-        <Text style={style.name}>{item.full_name}</Text>
-        <Text style={style.date}>
-          Reported on {new Date(item.created_at).toDateString()}
-        </Text>
-        <Text
-          style={[
-            style.status,
-            {
-              color:
-                item.status === 'Missing'
-                  ? 'red'
-                  : item.status === 'Ongoing'
-                  ? 'orange'
-                  : 'green',
-            },
-          ]}
-        >
-          {item.status}
-        </Text>
+  const renderReport = ({ item }) => {
+    const isAssisting = assistingReports.includes(item.report_id);
 
-        <View style={style.actionRow}>
-          <TouchableOpacity
-            style={style.viewButton}
-            onPress={() => setScreen('reportDetails')}
+    return (
+      <View style={style.card}>
+        <View style={style.infoContainer}>
+          <Text style={style.name}>{item.full_name}</Text>
+          <Text style={style.date}>
+            Reported on {new Date(item.created_at).toDateString()}
+          </Text>
+          <Text style={style.date}>Last seen at {item.last_seen_location}</Text>
+          <Text
+            style={[
+              style.status,
+              {
+                color:
+                  item.status === 'Verified'
+                    ? 'red'
+                    : item.status === 'In Progress'
+                    ? 'orange'
+                    : 'green',
+              },
+            ]}
           >
-            <Text style={style.viewText}>View</Text>
-          </TouchableOpacity>
+            {item.status}
+          </Text>
 
-          <TouchableOpacity style={style.acceptButton} onPress={() => {}}>
-            <Text style={style.acceptText}>Accept Case</Text>
-          </TouchableOpacity>
+          <View style={style.actionRow}>
+            <TouchableOpacity
+              style={[
+                style.assistButton,
+                { backgroundColor: isAssisting ? '#7f8c8d' : '#28a745' },
+              ]}
+              onPress={() => handleAssist(item.report_id)}
+              disabled={isAssisting}
+            >
+              <Text style={style.assistText}>
+                {isAssisting ? 'Assisting' : 'Assist'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={style.center}>
+        <ActivityIndicator size="large" color="#4266BE" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -85,7 +172,6 @@ const VolunteerHomeScreen = ({ setScreen }) => {
       edges={['top', 'bottom']}
     >
       <View style={style.container}>
-        {/* Main Content */}
         <View style={style.content}>
           <FlatList
             data={reports}
@@ -97,19 +183,20 @@ const VolunteerHomeScreen = ({ setScreen }) => {
               <>
                 <View style={style.header}>
                   <View>
-                    <Text style={style.greeting}>Welcome Volunteer,</Text>
-                    <Text style={style.username}>HOLAAA PAPI</Text>
+                    <Text style={style.greeting}>Welcome Back,</Text>
+                    <Text style={style.username}>{user?.full_name}</Text>
                   </View>
                 </View>
+
                 <View style={style.summaryCard}>
-                  <Icon name="users" size={28} color="#015dec" />
+                  <Icon name="users" size={28} color="#4266BE" />
                   <View style={{ marginLeft: 10 }}>
                     <Text style={style.summaryText}>
-                      You can view and assist in all reports
+                      You can assist in updating missing cases
                     </Text>
                   </View>
                 </View>
-                {/* Dashboard Stats */}
+
                 <View style={style.statsRow}>
                   {stats.map((s, index) => (
                     <View key={index} style={style.statCard}>
@@ -121,6 +208,7 @@ const VolunteerHomeScreen = ({ setScreen }) => {
                     </View>
                   ))}
                 </View>
+
                 <Text style={style.sectionTitle}>All Reports</Text>
               </>
             }
@@ -133,8 +221,11 @@ const VolunteerHomeScreen = ({ setScreen }) => {
           />
         </View>
 
-        {/* Bottom Navigation */}
-        <HeaderComponent setScreen={setScreen} active="volunteer" />
+        <HeaderComponent
+          setScreen={setScreen}
+          active="volunteer"
+          role="volunteer"
+        />
       </View>
     </SafeAreaView>
   );
@@ -146,13 +237,21 @@ const style = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9FBFF',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
   },
   content: {
     flex: 1,
   },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
-    marginTop: 12,
-    marginHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    margin: 16,
   },
   greeting: {
     fontSize: 14,
@@ -162,7 +261,6 @@ const style = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#2c3e50',
-    marginBottom: 12,
   },
   summaryCard: {
     flexDirection: 'row',
@@ -172,10 +270,10 @@ const style = StyleSheet.create({
     borderRadius: 12,
     elevation: 3,
     marginHorizontal: 16,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   summaryText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#2c3e50',
   },
@@ -242,25 +340,12 @@ const style = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 6,
   },
-  viewButton: {
-    backgroundColor: '#015dec',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginRight: 10,
-  },
-  viewText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  acceptButton: {
-    backgroundColor: '#2ecc71',
+  assistButton: {
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
-  acceptText: {
+  assistText: {
     color: '#fff',
     fontSize: 13,
     fontWeight: '600',

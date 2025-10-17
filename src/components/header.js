@@ -2,23 +2,41 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
 
-const HeaderComponent = ({ setScreen, active }) => {
-  const menuItems = [
-    { name: 'family', label: 'Home', icon: 'home', screen: 'family' },
-    {
-      name: 'report',
-      label: 'Report',
-      icon: 'plus-square',
-      screen: 'reportCase',
-    },
-    {
-      name: 'notification',
-      label: 'Notification',
-      icon: 'bell',
-      screen: 'notification',
-    },
-    { name: 'logout', label: 'Logout', icon: 'log-out', screen: 'Login' },
-  ];
+const HeaderComponent = ({ setScreen, active, role }) => {
+  const menuItems =
+    role === 'volunteer'
+      ? [
+          { name: 'home', label: 'Home', icon: 'home', screen: 'volunteer' },
+          {
+            name: 'case',
+            label: 'Cases',
+            icon: 'clipboard',
+            screen: 'volunteerCases',
+          },
+          {
+            name: 'notification',
+            label: 'Notification',
+            icon: 'bell',
+            screen: 'notification',
+          },
+          { name: 'logout', label: 'Logout', icon: 'log-out', screen: 'Login' },
+        ]
+      : [
+          { name: 'home', label: 'Home', icon: 'home', screen: 'family' },
+          {
+            name: 'report',
+            label: 'Report',
+            icon: 'plus-square',
+            screen: 'reportCase',
+          },
+          {
+            name: 'notification',
+            label: 'Notification',
+            icon: 'bell',
+            screen: 'notification',
+          },
+          { name: 'logout', label: 'Logout', icon: 'log-out', screen: 'Login' },
+        ];
 
   return (
     <View style={style.container}>

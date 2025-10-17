@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import Icon from '@react-native-vector-icons/feather';
-import { getAccount, createFamilyProfile } from '../../api/accountApi'; // Import getAccount
+import { getAccount, createFamilyProfile } from '../../api/accountApi';
 
 const FamilyProfileScreen = ({ setScreen }) => {
   const [form, setForm] = useState({
@@ -109,9 +109,20 @@ const FamilyProfileScreen = ({ setScreen }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 5, color: '#333' },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 20 },
+  container: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -124,8 +135,14 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 2,
   },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, padding: 10, fontSize: 16 },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    padding: 10,
+    fontSize: 16,
+  },
   button: {
     backgroundColor: '#015dec',
     padding: 15,
@@ -133,7 +150,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default FamilyProfileScreen;

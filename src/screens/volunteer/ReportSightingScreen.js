@@ -10,76 +10,63 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@react-native-vector-icons/feather';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { launchImageLibrary } from 'react-native-image-picker';
-import HeaderComponent from '../components/header';
+import { createSighting, uploadSightingMedia } from '../../api/sightingApi';
 
-// APIs
-import { createReport, uploadReportMedia } from '../api/reportApi';
-
-const ReportCaseScreen = ({ setScreen }) => {
-  const [form, setForm] = useState({
-    full_name: '',
-    age: '',
-    gender: '',
-    last_seen_date: '',
-    last_seen_location: '',
-    clothing: '',
-    notes: '',
-  });
+const ReportSightingScreen = ({ goBack, reportId }) => {
+  const [form, setForm] = useState({ location: '', details: '' });
   const [photoUris, setPhotoUris] = useState([]);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (key, value) =>
-    setForm(prev => ({ ...prev, [key]: value }));
-
+  // Pick one or multiple images
   const pickImages = () => {
     launchImageLibrary(
       { mediaType: 'photo', selectionLimit: 0, quality: 0.8 },
       response => {
         if (response.didCancel) return;
-        if (response.errorMessage)
+        if (response.errorMessage) {
           return Alert.alert('Error', response.errorMessage);
+        }
+
         const newUris = (response.assets || []).map(a => a.uri).filter(Boolean);
         setPhotoUris(prev => [...prev, ...newUris]);
       },
     );
   };
 
-  const removeImage = uri => setPhotoUris(prev => prev.filter(u => u !== uri));
+  const removeImage = uri => {
+    setPhotoUris(prev => prev.filter(u => u !== uri));
+  };
 
   const resetForm = () => {
-    setForm({
-      full_name: '',
-      age: '',
-      gender: '',
-      last_seen_date: '',
-      last_seen_location: '',
-      clothing: '',
-      notes: '',
-    });
+    setForm({ location: '', details: '' });
     setPhotoUris([]);
   };
 
   const handleSubmit = async () => {
-    if (!form.full_name.trim() || !form.last_seen_location.trim()) {
-      return Alert.alert(
-        'Validation',
-        'Please provide full name and last seen location.',
-      );
+    if (!form.location.trim() || !form.details.trim()) {
+      return Alert.alert('Validation', 'Please fill out all fields.');
     }
 
     setLoading(true);
     try {
-      const res = await createReport(form);
-      const reportId = res.data?.report_id || res.report_id;
-      if (!reportId) throw new Error('No report ID returned.');
+      const sightingRes = await createSighting({
+        report: reportId,
+        location: form.location,
+        description: form.details,
+        date_seen: new Date().toISOString().split('T')[0],
+      });
 
+      const sightingId =
+        sightingRes.data?.sighting_id ||
+        sightingRes.data?.id ||
+        sightingRes.sighting_id;
+      if (!sightingId) throw new Error('No sighting ID returned');
+
+      // Upload attached images
       for (const uri of photoUris) {
         const formData = new FormData();
 
@@ -88,21 +75,21 @@ const ReportCaseScreen = ({ setScreen }) => {
           fileUri = 'file://' + fileUri;
         }
 
-        formData.append('report', reportId);
+        formData.append('sighting', sightingId);
         formData.append('file', {
           uri: fileUri,
           type: 'image/jpeg',
-          name: `report_${Date.now()}.jpg`,
+          name: `sighting_${Date.now()}.jpg`,
         });
 
-        await uploadReportMedia(formData);
+        await uploadSightingMedia(formData);
       }
 
-      Alert.alert('Success', 'Report submitted successfully!');
+      Alert.alert('Success', 'Your sighting has been reported.');
       resetForm();
-      setScreen('family');
+      goBack();
     } catch (err) {
-      console.error('Report submission error:', err.response?.data || err);
+      console.error('Sighting submit error:', err.response?.data || err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -111,10 +98,11 @@ const ReportCaseScreen = ({ setScreen }) => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Report Missing Person</Text>
+        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+          <Icon name="arrow-left" size={22} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Report Sighting</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -123,89 +111,28 @@ const ReportCaseScreen = ({ setScreen }) => {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         <View style={[styles.card, styles.leftAccent]}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>Location</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter full name"
-            value={form.full_name}
-            onChangeText={val => handleChange('full_name', val)}
+            placeholder="Where did you see the person?"
+            value={form.location}
+            onChangeText={text =>
+              setForm(prev => ({ ...prev, location: text }))
+            }
           />
-
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Text style={styles.label}>Age</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                placeholder="Age"
-                value={form.age}
-                onChangeText={val => handleChange('age', val)}
-              />
-            </View>
-            <View style={styles.half}>
-              <Text style={styles.label}>Gender</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Gender"
-                value={form.gender}
-                onChangeText={val => handleChange('gender', val)}
-              />
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Text style={styles.label}>Last Seen Date</Text>
-              <TouchableOpacity
-                style={[styles.input, styles.dateButton]}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text
-                  style={
-                    form.last_seen_date
-                      ? styles.dateText
-                      : styles.placeholderText
-                  }
-                >
-                  {form.last_seen_date || 'Select date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.half}>
-              <Text style={styles.label}>Last Seen Location</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter location"
-                value={form.last_seen_location}
-                onChangeText={val => handleChange('last_seen_location', val)}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.label}>Clothing Description</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="What was the person wearing?"
-            value={form.clothing}
-            onChangeText={val => handleChange('clothing', val)}
-          />
-
-          <Text style={styles.label}>Additional Notes</Text>
+          <Text style={styles.label}>Details</Text>
           <TextInput
             style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-            placeholder="Any additional information?"
+            placeholder="Describe what you saw..."
             multiline
-            value={form.notes}
-            onChangeText={val => handleChange('notes', val)}
+            value={form.details}
+            onChangeText={text => setForm(prev => ({ ...prev, details: text }))}
           />
-
           <Text style={styles.label}>Attach Photos (optional)</Text>
           <TouchableOpacity style={styles.imagePicker} onPress={pickImages}>
             <Icon name="camera" size={20} color="#4266BE" />
             <Text style={styles.imagePickerText}>Upload Images</Text>
           </TouchableOpacity>
-
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {photoUris.map((uri, idx) => (
               <View key={uri + idx} style={styles.photoWrap}>
@@ -219,7 +146,6 @@ const ReportCaseScreen = ({ setScreen }) => {
               </View>
             ))}
           </ScrollView>
-
           <TouchableOpacity
             style={[styles.submitButton, loading && { opacity: 0.6 }]}
             disabled={loading}
@@ -228,39 +154,16 @@ const ReportCaseScreen = ({ setScreen }) => {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.submitText}>Submit Report</Text>
+              <Text style={styles.submitText}>Submit Sighting</Text>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <HeaderComponent
-        setScreen={setScreen}
-        active="reportCase"
-        role="family"
-      />
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            form.last_seen_date ? new Date(form.last_seen_date) : new Date()
-          }
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === 'android') setShowDatePicker(false);
-            if (selectedDate) {
-              const isoDate = selectedDate.toISOString().split('T')[0];
-              handleChange('last_seen_date', isoDate);
-            }
-          }}
-        />
-      )}
     </SafeAreaView>
   );
 };
 
-export default ReportCaseScreen;
+export default ReportSightingScreen;
 
 const styles = StyleSheet.create({
   safe: {
@@ -274,6 +177,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#eee',
     justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 6,
   },
   headerTitle: {
     fontSize: 18,
@@ -309,11 +215,6 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  half: { width: '48%' },
   imagePicker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,14 +271,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-  },
-  placeholderText: {
-    color: '#888',
-  },
-  dateText: {
-    color: '#333',
-  },
-  dateButton: {
-    justifyContent: 'center',
   },
 });

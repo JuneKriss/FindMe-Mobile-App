@@ -1,5 +1,4 @@
 //auth-related calls
-
 import API, { setToken } from './api';
 
 export const login = async (username, password) => {

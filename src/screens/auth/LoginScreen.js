@@ -7,7 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@react-native-vector-icons/feather';
 import { login } from '../../api/authApi';
 
@@ -25,14 +29,11 @@ const LoginScreen = ({ setScreen }) => {
     try {
       const response = await login(username, password);
       if (response?.access) {
-        console.log('Login Success', response);
-        Alert.alert('Login Successfully');
         setScreen('Role');
       } else {
         Alert.alert('Error', 'Invalid username or password');
       }
     } catch (error) {
-      console.log('Login error details:', error.response || error.message);
       Alert.alert('Error', `Something went wrong: ${error.message}`);
     } finally {
       setLoading(false);
@@ -40,109 +41,129 @@ const LoginScreen = ({ setScreen }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
-      <Icon name="map-pin" size={200} style={styles.icon} />
-      <Text style={styles.title}>FindMe</Text>
-      <Text style={styles.quote}>
-        Connecting Communities,{'\n'}Saving Lives
-      </Text>
-      <Text style={styles.info}>
-        Enter valid user name & password to continue
-      </Text>
-      {/* Email Input */}
-      <View style={styles.inputContainer}>
-        <Icon name="mail" size={20} color="#555" style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor="#aaa"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-        />
-      </View>
-      {/* Password Input */}
-      <View style={styles.inputContainer}>
-        <Icon name="lock" size={20} color="#555" style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
-      {/* Login Button */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={HandleLogin}
-        disabled={loading}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
       >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
-      {/* Navigate to Register */}
-      <TouchableOpacity onPress={() => setScreen('Register')}>
-        <Text style={styles.link}>
-          Don't have an account?{'\n'}
-          <Text style={styles.linkHighlight}>Sign up</Text>
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <StatusBar barStyle="dark-content" backgroundColor="#f8f9fb" />
+          <Icon name="map-pin" size={180} style={styles.icon} />
+          <Text style={styles.title}>FindMe</Text>
+          <Text style={styles.quote}>
+            Connecting Communities,{'\n'}Saving Lives
+          </Text>
+          <Text style={styles.info}>
+            Enter valid username & password to continue
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <Icon name="user" size={20} color="#555" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#aaa"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Icon name="lock" size={20} color="#555" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              returnKeyType="done"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={HandleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Logging in...' : 'Login'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setScreen('Register')}>
+            <Text style={styles.link}>
+              Don’t have an account? {'\n'}
+              <Text style={styles.linkHighlight}>Sign up</Text>
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
+    backgroundColor: '#f8f9fb',
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
+    padding: 20,
   },
   icon: {
-    size: 300,
     color: '#4266BE',
     marginBottom: 5,
   },
   title: {
-    fontSize: 55,
+    fontSize: 48,
     fontWeight: 'bold',
-    letterSpacing: 2,
-    marginBottom: 2,
+    color: '#333',
+    marginBottom: 4,
   },
   quote: {
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 18,
-    letterSpacing: 2,
+    letterSpacing: 1,
     marginBottom: 16,
+    color: '#555',
   },
   info: {
     fontSize: 13,
     color: '#565656',
     marginBottom: 15,
+    textAlign: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#ccc',
+    borderColor: '#E0E0E0',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    backgroundColor: '#f9f9f9',
-    width: '70%',
-    marginBottom: 10, // space between inputs
+    backgroundColor: '#fff',
+    width: '80%',
+    marginBottom: 12,
   },
   inputIcon: {
-    marginRight: 5,
+    marginRight: 8,
   },
   input: {
-    flex: 1, // expands to fill available space
+    flex: 1,
     height: 45,
     fontSize: 15,
     color: '#333',
@@ -150,25 +171,25 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#4266BE',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 15,
-    width: '70%',
+    width: '80%',
+    marginTop: 10,
+    elevation: 2,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   link: {
-    color: '#000', // black for the first line
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center', // centers both lines
-    marginBottom: 15,
+    color: '#000',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 15,
   },
   linkHighlight: {
-    color: '#4266BE', // blue for Sign up
+    color: '#4266BE',
     fontWeight: 'bold',
   },
 });

@@ -24,8 +24,14 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
   const fetchUser = async () => {
     try {
       const response = await getAccount();
+      console.log('User fetched:', response.data);
       setUser(response.data);
     } catch (err) {
+      console.log(
+        'Error loading user info:',
+        err.response?.status,
+        err.response?.data,
+      );
       Alert.alert('Error', 'Could not load user info');
     }
   };
@@ -85,7 +91,7 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
   if (loading) {
     return (
       <View style={style.center}>
-        <ActivityIndicator size="large" color="#015dec" />
+        <ActivityIndicator size="large" color="#4266BE" />
       </View>
     );
   }
@@ -114,7 +120,7 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
                 </View>
 
                 <View style={style.summaryCard}>
-                  <Icon name="file-text" size={28} color="#015dec" />
+                  <Icon name="file-text" size={28} color="#4266BE" />
                   <View style={{ marginLeft: 10 }}>
                     <Text style={style.summaryText}>
                       You have {myReports.length} active reports
@@ -138,7 +144,7 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
         </View>
 
         {/* Bottom Navigation */}
-        <HeaderComponent setScreen={setScreen} active="family" />
+        <HeaderComponent setScreen={setScreen} active="family" role="family" />
       </View>
     </SafeAreaView>
   );
@@ -193,7 +199,7 @@ const style = StyleSheet.create({
   addNew: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#015dec',
+    color: '#4266BE',
     marginTop: 4,
   },
   sectionTitle: {
@@ -233,7 +239,7 @@ const style = StyleSheet.create({
   },
   viewButton: {
     marginTop: 6,
-    backgroundColor: '#015dec',
+    backgroundColor: '#4266BE',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 5,

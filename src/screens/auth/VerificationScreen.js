@@ -6,7 +6,10 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { verifyEmail, resendCode } from '../../api/accountApi';
 
 const VerifyScreen = ({ userId, email, setScreen }) => {
@@ -18,9 +21,7 @@ const VerifyScreen = ({ userId, email, setScreen }) => {
       return;
     }
     try {
-      console.log('Verify payload:', { userId, code });
       const res = await verifyEmail(userId, code);
-
       if (res.success) {
         Alert.alert('Success', res.success);
         setScreen('Login');
@@ -28,11 +29,6 @@ const VerifyScreen = ({ userId, email, setScreen }) => {
         Alert.alert('Error', res.error || 'Invalid code');
       }
     } catch (err) {
-      console.log(
-        'Verify error:',
-        err.response?.status,
-        err.response?.data || err.message,
-      );
       Alert.alert('Error', err.response?.data?.error || 'Something went wrong');
     }
   };
@@ -40,58 +36,123 @@ const VerifyScreen = ({ userId, email, setScreen }) => {
   const handleResend = async () => {
     try {
       const res = await resendCode(userId);
-      Alert.alert('Success', res.success || 'Code resent');
+      Alert.alert('Success', res.success || 'Code resent successfully');
     } catch (err) {
-      console.log('Resend error:', err.response?.data || err.message);
       Alert.alert(
         'Error',
-        err.response?.data?.error || 'Could not resend code',
+        err.response?.data?.error || 'Failed to resend code',
       );
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Email Verification</Text>
-      <Text style={styles.info}>Enter the 6-digit code sent to {email}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter code"
-        keyboardType="numeric"
-        maxLength={6}
-        value={code}
-        onChangeText={setCode}
-      />
-      <TouchableOpacity style={styles.button} onPress={handleVerify}>
-        <Text style={styles.buttonText}>Verify</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={handleResend}>
-        <Text style={styles.resendText}>Resend Code</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.innerContainer}>
+          <Text style={styles.title}>Email Verification</Text>
+          <Text style={styles.info}>
+            Enter the 6-digit code sent to{' '}
+            <Text style={styles.email}>{email}</Text>
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter 6-digit code"
+            placeholderTextColor="#7f8c8d"
+            keyboardType="numeric"
+            maxLength={6}
+            value={code}
+            onChangeText={setCode}
+          />
+
+          <TouchableOpacity style={styles.button} onPress={handleVerify}>
+            <Text style={styles.buttonText}>Verify</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleResend}>
+            <Text style={styles.resendText}>
+              Didn’t receive code? <Text style={styles.resendLink}>Resend</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 20, marginBottom: 10, textAlign: 'center' },
-  info: { fontSize: 14, marginBottom: 20, textAlign: 'center' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 20,
-    textAlign: 'center',
-    borderRadius: 5,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8f9fb',
   },
-  button: {
-    backgroundColor: '#4CAF50',
-    padding: 15,
-    borderRadius: 5,
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  innerContainer: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
     marginBottom: 10,
   },
-  buttonText: { color: 'white', textAlign: 'center', fontWeight: '600' },
-  resendText: { color: '#007BFF', textAlign: 'center', marginTop: 10 },
+  info: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  email: {
+    fontWeight: '600',
+    color: '#4266BE',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: 20,
+  },
+  button: {
+    backgroundColor: '#4266BE',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  resendText: {
+    color: '#555',
+    textAlign: 'center',
+    marginTop: 15,
+    fontSize: 14,
+  },
+  resendLink: {
+    color: '#4266BE',
+    fontWeight: '600',
+  },
 });
 
 export default VerifyScreen;

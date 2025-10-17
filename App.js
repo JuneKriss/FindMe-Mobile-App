@@ -11,15 +11,18 @@ import ReportCaseScreen from './src/components/ReportCase';
 import FamilyProfileScreen from './src/screens/Family/FamilyProfileScreen';
 import FamilyReportDetails from './src/screens/Family/FamilyReportDetails';
 import VerifyScreen from './src/screens/auth/VerificationScreen';
+import ChatScreen from './src/components/ChatScreen';
+import VolunteerReportDetails from './src/screens/volunteer/VolunteerReportDetails';
+import VolunteerCases from './src/screens/volunteer/VolunteerCases';
+import ReportSightingScreen from './src/screens/volunteer/ReportSightingScreen';
+import FamilySighting from './src/screens/Family/FamilySighting';
 
 export default function App() {
-  // 👇 Start with Splash as an object
   const [stack, setStack] = useState([{ name: 'Splash', params: {} }]);
   const [selectedReportId, setSelectedReportId] = useState(null);
 
   const currentScreen = stack[stack.length - 1];
 
-  // ✅ navigate can take name + params
   const navigate = (name, params = {}) => {
     setStack(prev => [...prev, { name, params }]);
   };
@@ -32,26 +35,23 @@ export default function App() {
     <View style={{ flex: 1 }}>
       <StatusBar barStyle="dark-content" backgroundColor="#f9f9f9" />
 
+      {/* AUTH */}
       {currentScreen.name === 'Splash' && <SplashScreen setScreen={navigate} />}
       {currentScreen.name === 'Login' && <LoginScreen setScreen={navigate} />}
       {currentScreen.name === 'Register' && (
         <RegisterScreen setScreen={navigate} />
       )}
       {currentScreen.name === 'Verify' && (
-        <VerifyScreen
-          {...currentScreen.params} // ✅ userId + email arrive here
-          setScreen={navigate}
-        />
+        <VerifyScreen {...currentScreen.params} setScreen={navigate} />
       )}
+
+      {/* FAMILY SCREENS */}
       {currentScreen.name === 'Role' && <RoleSelection setScreen={navigate} />}
       {currentScreen.name === 'family' && (
         <FamilyHomeScreen
           setScreen={navigate}
           setSelectedReportId={setSelectedReportId}
         />
-      )}
-      {currentScreen.name === 'volunteer' && (
-        <VolunteerHomeScreen setScreen={navigate} />
       )}
       {currentScreen.name === 'reportCase' && (
         <ReportCaseScreen setScreen={navigate} />
@@ -64,6 +64,44 @@ export default function App() {
           setScreen={navigate}
           goBack={goBack}
           selectedReportId={selectedReportId}
+        />
+      )}
+      {currentScreen.name === 'familySighting' && (
+        <FamilySighting
+          setScreen={navigate}
+          goBack={goBack}
+          {...currentScreen.params}
+        />
+      )}
+      {currentScreen.name === 'chat' && (
+        <ChatScreen goBack={goBack} {...currentScreen.params} />
+      )}
+
+      {/* VOLUNTEER SCREENS */}
+      {currentScreen.name === 'volunteer' && (
+        <VolunteerHomeScreen
+          setScreen={navigate}
+          setSelectedReportId={setSelectedReportId}
+        />
+      )}
+      {currentScreen.name === 'volunteerDetails' && (
+        <VolunteerReportDetails
+          setScreen={navigate}
+          goBack={goBack}
+          selectedReportId={selectedReportId}
+        />
+      )}
+      {currentScreen.name === 'volunteerCases' && (
+        <VolunteerCases
+          setScreen={navigate}
+          setSelectedReportId={setSelectedReportId}
+        />
+      )}
+      {currentScreen.name === 'reportSighting' && (
+        <ReportSightingScreen
+          setScreen={navigate}
+          goBack={goBack}
+          {...currentScreen.params}
         />
       )}
     </View>

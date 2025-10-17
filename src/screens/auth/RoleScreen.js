@@ -41,7 +41,6 @@ const RoleSelection = ({ setScreen }) => {
       <Text style={styles.subText}>Choose your role to continue</Text>
       <Text style={styles.pickText}>Are you acting as:</Text>
 
-      {/* Family Card */}
       <TouchableOpacity
         style={styles.card}
         onPress={() => handleRoleSelect('family')}
@@ -59,7 +58,6 @@ const RoleSelection = ({ setScreen }) => {
         </View>
       </TouchableOpacity>
 
-      {/* Volunteer Card */}
       <TouchableOpacity
         style={styles.card}
         onPress={() => handleRoleSelect('volunteer')}
