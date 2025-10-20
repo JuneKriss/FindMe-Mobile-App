@@ -221,11 +221,13 @@ const VolunteerHomeScreen = ({ setScreen, setSelectedReportId }) => {
           />
         </View>
 
-        <HeaderComponent
-          setScreen={setScreen}
-          active="volunteer"
-          role="volunteer"
-        />
+        {user && (
+          <HeaderComponent
+            setScreen={setScreen}
+            active="volunteer"
+            role={user.role}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

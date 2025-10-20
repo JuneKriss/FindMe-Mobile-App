@@ -144,7 +144,13 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
         </View>
 
         {/* Bottom Navigation */}
-        <HeaderComponent setScreen={setScreen} active="family" role="family" />
+        {user && (
+          <HeaderComponent
+            setScreen={setScreen}
+            active="family"
+            role={user.role}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

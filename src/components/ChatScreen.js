@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,20 +18,16 @@ const ChatScreen = ({ goBack, reportId }) => {
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     const init = async () => {
       try {
         const token = await loadToken();
-        console.log('Loaded token:', token);
-
         if (token) {
           const decoded = jwtDecode(token);
-          console.log('Decoded token:', decoded);
           setCurrentUser(decoded.account_id);
-          console.log('Current user set to:', decoded.account_id);
         }
-
         await fetchMessages();
         const interval = setInterval(fetchMessages, 3000);
         return () => clearInterval(interval);
@@ -45,7 +41,11 @@ const ChatScreen = ({ goBack, reportId }) => {
   const fetchMessages = async () => {
     try {
       const res = await getMessages(reportId);
-      setMessages(res.data || res);
+      // Sort messages oldest → newest
+      const sorted = (res.data || res).sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      );
+      setMessages(sorted);
     } catch (err) {
       console.error(
         'Error fetching messages:',
@@ -61,12 +61,19 @@ const ChatScreen = ({ goBack, reportId }) => {
     try {
       await apiSendMessage(reportId, text);
       setText('');
-      fetchMessages();
+      await fetchMessages();
+      scrollToBottom();
     } catch (err) {
       console.error(
         'Error sending message:',
         err.response?.data || err.message,
       );
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
     }
   };
 
@@ -83,7 +90,6 @@ const ChatScreen = ({ goBack, reportId }) => {
       item.sender?.toString();
 
     const currentId = currentUser?.toString();
-
     const isUser = senderId === currentId;
 
     return (
@@ -123,6 +129,10 @@ const ChatScreen = ({ goBack, reportId }) => {
     );
   };
 
+  useEffect(() => {
+    if (messages.length > 0) scrollToBottom();
+  }, [messages]);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       {/* Header */}
@@ -135,13 +145,14 @@ const ChatScreen = ({ goBack, reportId }) => {
 
       {/* Chat Messages */}
       <FlatList
+        ref={flatListRef}
         data={messages}
         keyExtractor={item =>
           (item.message_id || item.id || Math.random()).toString()
         }
         renderItem={renderItem}
         contentContainerStyle={{ padding: 16 }}
-        inverted
+        onContentSizeChange={scrollToBottom}
         ListEmptyComponent={
           !isLoading && (
             <Text style={{ textAlign: 'center', color: '#777' }}>
@@ -206,7 +217,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     maxWidth: '75%',
   },
-  // Logged-in user message
   userBubble: {
     backgroundColor: '#e5e7e9',
     borderBottomRightRadius: 2,
@@ -220,7 +230,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginTop: 2,
   },
-  // Other users' message
   otherBubble: {
     backgroundColor: '#0084ff',
     borderBottomLeftRadius: 2,

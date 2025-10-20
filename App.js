@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, StatusBar } from 'react-native';
-
 import SplashScreen from './src/screens/splash/SplashScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -16,6 +15,7 @@ import VolunteerReportDetails from './src/screens/volunteer/VolunteerReportDetai
 import VolunteerCases from './src/screens/volunteer/VolunteerCases';
 import ReportSightingScreen from './src/screens/volunteer/ReportSightingScreen';
 import FamilySighting from './src/screens/Family/FamilySighting';
+import NotificationScreen from './src/components/notificationScreen';
 
 export default function App() {
   const [stack, setStack] = useState([{ name: 'Splash', params: {} }]);
@@ -45,8 +45,10 @@ export default function App() {
         <VerifyScreen {...currentScreen.params} setScreen={navigate} />
       )}
 
-      {/* FAMILY SCREENS */}
+      {/* ROLE SELECTION */}
       {currentScreen.name === 'Role' && <RoleSelection setScreen={navigate} />}
+
+      {/* FAMILY SCREENS */}
       {currentScreen.name === 'family' && (
         <FamilyHomeScreen
           setScreen={navigate}
@@ -103,6 +105,9 @@ export default function App() {
           goBack={goBack}
           {...currentScreen.params}
         />
+      )}
+      {currentScreen.name === 'notification' && (
+        <NotificationScreen setScreen={navigate} goBack={goBack} />
       )}
     </View>
   );
