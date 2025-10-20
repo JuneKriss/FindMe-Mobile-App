@@ -8,3 +8,5 @@ export const getNotifications = async () => {
 export const markNotificationAsRead = async id => {
   await API.post(`user-notifications/${id}/mark_read/`);
 };
+
+export const getAccount = () => API.get('accounts/me/');

@@ -1,147 +1,220 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@react-native-vector-icons/feather';
 import {
   getNotifications,
   markNotificationAsRead,
+  getAccount,
 } from '../api/notificationAPI';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-const NotificationScreen = ({ setScreen, goBack, user }) => {
+const NotificationScreen = ({ setScreen, goBack }) => {
+  const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchUser = async () => {
+    try {
+      const res = await getAccount();
+      setUser(res.data);
+    } catch (err) {
+      console.error('Failed to load user:', err);
+      Alert.alert('Error', 'Unable to load user account');
+    }
+  };
 
   const fetchNotifications = async () => {
-    if (!user) return;
-    setLoading(true);
     try {
       const data = await getNotifications();
-      const filtered = data.filter(n => !n.is_deleted);
-      setNotifications(filtered);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+      setNotifications(data);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+      Alert.alert('Error', 'Unable to load notifications');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    if (user) fetchNotifications();
-  }, [user?.role, user?.account_id]);
+    const init = async () => {
+      await fetchUser();
+    };
+    init();
+  }, []);
 
-  const handlePress = async notification => {
-    if (!notification.is_read) {
-      await markNotificationAsRead(notification.id);
+  useEffect(() => {
+    if (user) {
       fetchNotifications();
     }
+  }, [user]);
 
-    if (notification.related_report) {
-      setScreen('reportDetails', { reportId: notification.related_report });
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchNotifications();
+  }, []);
+
+  const handleNotificationPress = async notif => {
+    try {
+      await markNotificationAsRead(notif.id);
+      setNotifications(prev =>
+        prev.map(n => (n.id === notif.id ? { ...n, is_read: true } : n)),
+      );
+
+      if (notif.related_report) {
+        setScreen('reportDetail', { reportId: notif.related_report });
+      }
+    } catch (err) {
+      console.error('Failed to mark as read:', err);
+    }
+  };
+
+  const renderNotificationIcon = action => {
+    switch (action) {
+      case 'case_verified':
+        return <Icon name="check-circle" size={24} color="#27ae60" />;
+      case 'report_assisted':
+        return <Icon name="user-check" size={24} color="#2980b9" />;
+      default:
+        return <Icon name="bell" size={24} color="#555" />;
     }
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4266BE" />
-      </View>
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#2E86DE" />
+        <Text style={{ color: '#555', marginTop: 10 }}>
+          Loading notifications...
+        </Text>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack}>
-          <Icon name="arrow-left" size={24} color="#000" />
+        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+          <Icon name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
+        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{ width: 22 }} />
       </View>
 
+      {/* Notification List */}
       <FlatList
         data={notifications}
         keyExtractor={item => item.id.toString()}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.card, !item.is_read && styles.unreadCard]}
-            onPress={() => handlePress(item)}
+            style={[styles.card, !item.is_read && styles.unread, styles.shadow]}
+            onPress={() => handleNotificationPress(item)}
           >
-            <View style={styles.row}>
-              <Icon
-                name={
-                  item.action === 'new_message'
-                    ? 'message-circle'
-                    : 'alert-circle'
-                }
-                size={22}
-                color={item.is_read ? '#777' : '#4266BE'}
-              />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.titleText}>{item.title}</Text>
-                <Text style={styles.dateText}>
-                  {new Date(item.created_at).toLocaleString()}
-                </Text>
-              </View>
+            <View style={styles.iconWrapper}>
+              {renderNotificationIcon(item.notification?.action)}
+            </View>
+            <View style={styles.textWrapper}>
+              <Text style={styles.notificationText}>
+                {item.notification?.title || item.title}
+              </Text>
+              <Text style={styles.timeText}>
+                {new Date(
+                  item.notification?.created_at || item.created_at,
+                ).toLocaleString()}
+              </Text>
             </View>
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No notifications yet 🎉</Text>
+        }
+        contentContainerStyle={{ paddingVertical: 12 }}
       />
     </SafeAreaView>
   );
 };
 
-export default NotificationScreen;
-
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: '#f7faff' },
+  centered: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
-    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    backgroundColor: '#2E86DE',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
     elevation: 3,
   },
-  unreadCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#4266BE',
+  backButton: { padding: 4 },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
   },
-  row: {
+  card: {
     flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    padding: 14,
     alignItems: 'center',
   },
-  titleText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#333',
+  unread: {
+    backgroundColor: '#e8f3ff',
   },
-  dateText: {
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  iconWrapper: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textWrapper: { flex: 1, paddingLeft: 8 },
+  notificationText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  timeText: {
     fontSize: 12,
-    color: '#777',
+    color: '#888',
     marginTop: 4,
   },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 50,
+    fontSize: 16,
+    color: '#777',
+  },
 });
+
+export default NotificationScreen;
