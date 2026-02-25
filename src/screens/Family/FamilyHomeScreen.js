@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Platform,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -15,31 +14,34 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import HeaderComponent from '../../components/header';
 import { getAccount } from '../../api/accountApi';
 import { getReports } from '../../api/reportApi';
+import { cancelReport } from '../../api/reportApi';
 
 const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
   const [user, setUser] = useState(null);
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch user info
   const fetchUser = async () => {
     try {
       const response = await getAccount();
-      console.log('User fetched:', response.data);
       setUser(response.data);
     } catch (err) {
-      console.log(
-        'Error loading user info:',
-        err.response?.status,
-        err.response?.data,
-      );
+      console.log('Error loading user info:', err);
       Alert.alert('Error', 'Could not load user info');
     }
   };
 
+  // Fetch reports
   const fetchReports = async () => {
     try {
       const response = await getReports();
-      setMyReports(response.data);
+      // Filter out cancelled reports
+      const activeReports = response.data.filter(
+        report =>
+          report.status !== 'Cancelled' && report.status !== 'PendingOTP',
+      );
+      setMyReports(activeReports);
     } catch (err) {
       Alert.alert('Error', 'Could not load reports');
     } finally {
@@ -52,6 +54,18 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
     fetchReports();
   }, []);
 
+  const handleCancelReport = async reportId => {
+    try {
+      await cancelReport(reportId); // now this correctly calls the API
+      Alert.alert('Success', 'Report has been cancelled.');
+      fetchReports(); // refresh the list
+    } catch (err) {
+      console.error('Cancel report error:', err);
+      Alert.alert('Error', 'Failed to cancel report.');
+    }
+  };
+
+  // Render each report
   const renderReport = ({ item }) => (
     <View style={style.card}>
       <View style={style.infoContainer}>
@@ -68,6 +82,8 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
                   ? 'red'
                   : item.status === 'Ongoing'
                   ? 'orange'
+                  : item.status === 'Pending'
+                  ? 'gray'
                   : 'green',
             },
           ]}
@@ -75,15 +91,29 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
           {item.status}
         </Text>
 
-        <TouchableOpacity
-          style={style.viewButton}
-          onPress={() => {
-            setSelectedReportId(item.report_id);
-            setScreen('reportDetails');
-          }}
-        >
-          <Text style={style.viewText}>View</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+          <TouchableOpacity
+            style={style.viewButton}
+            onPress={() =>
+              setScreen('reportDetails', { reportId: item.report_id })
+            }
+          >
+            <Text style={style.viewText}>View</Text>
+          </TouchableOpacity>
+
+          {/* Show Cancel button if Pending */}
+          {item.status === 'Pending' && (
+            <TouchableOpacity
+              style={[
+                style.viewButton,
+                { backgroundColor: '#e74c3c', marginLeft: 8 },
+              ]}
+              onPress={() => handleCancelReport(item.report_id)}
+            >
+              <Text style={style.viewText}>Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -102,7 +132,6 @@ const FamilyHomeScreen = ({ setScreen, setSelectedReportId }) => {
       edges={['top', 'bottom']}
     >
       <View style={style.container}>
-        {/* Main Content */}
         <View style={style.content}>
           <FlatList
             data={myReports}

@@ -33,6 +33,7 @@ const ReportCaseScreen = ({ setScreen }) => {
   });
   const [photoUris, setPhotoUris] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showGenderModal, setShowGenderModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (key, value) =>
@@ -80,6 +81,7 @@ const ReportCaseScreen = ({ setScreen }) => {
       const reportId = res.data?.report_id || res.report_id;
       if (!reportId) throw new Error('No report ID returned.');
 
+      // upload images
       for (const uri of photoUris) {
         const formData = new FormData();
 
@@ -98,9 +100,10 @@ const ReportCaseScreen = ({ setScreen }) => {
         await uploadReportMedia(formData);
       }
 
-      Alert.alert('Success', 'Report submitted successfully!');
+      // 👉 go to OTP screen
+      setScreen('reportVerify', { reportId });
+
       resetForm();
-      setScreen('family');
     } catch (err) {
       console.error('Report submission error:', err.response?.data || err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -142,14 +145,19 @@ const ReportCaseScreen = ({ setScreen }) => {
                 onChangeText={val => handleChange('age', val)}
               />
             </View>
+
             <View style={styles.half}>
               <Text style={styles.label}>Gender</Text>
-              <TextInput
+              <TouchableOpacity
                 style={styles.input}
-                placeholder="Gender"
-                value={form.gender}
-                onChangeText={val => handleChange('gender', val)}
-              />
+                onPress={() => setShowGenderModal(true)}
+              >
+                <Text
+                  style={form.gender ? styles.dateText : styles.placeholderText}
+                >
+                  {form.gender || 'Select gender'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -255,6 +263,44 @@ const ReportCaseScreen = ({ setScreen }) => {
             }
           }}
         />
+      )}
+
+      {showGenderModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Select Gender</Text>
+
+            {['Male', 'Female'].map(option => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.modalOption,
+                  form.gender === option && styles.modalOptionSelected,
+                ]}
+                onPress={() => {
+                  handleChange('gender', option);
+                  setShowGenderModal(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modalOptionText,
+                    form.gender === option && styles.modalOptionTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setShowGenderModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -379,5 +425,59 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     justifyContent: 'center',
+  },
+
+  // Modal styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalOptionSelected: {
+    backgroundColor: '#4266BE20',
+  },
+  modalOptionTextSelected: {
+    color: '#4266BE',
+    fontWeight: '600',
+  },
+  modalCancel: {
+    marginTop: 10,
+    paddingVertical: 10,
+  },
+  modalCancelText: {
+    color: '#ff4d4d',
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

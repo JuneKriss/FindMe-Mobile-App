@@ -17,3 +17,16 @@ export const assistReport = reportId => API.post(`reports/${reportId}/assist/`);
 
 // Reports the volunteer is already assisting
 export const getMyAssistedReports = () => API.get('reports/my_assisted/');
+
+export const cancelReport = reportId => API.post(`reports/${reportId}/cancel/`);
+
+export const verifyReportOtp = (reportId, code) =>
+  API.post('reports/verify-report/', {
+    report_id: reportId,
+    code,
+  });
+
+export const resendReportOtp = reportId =>
+  API.post('reports/resend-report-code/', {
+    report_id: reportId,
+  });

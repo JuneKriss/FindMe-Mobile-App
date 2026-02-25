@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@react-native-vector-icons/feather';
 import { getReport } from '../../api/reportApi';
 
-const FamilyReportDetails = ({ selectedReportId, goBack, setScreen }) => {
+const FamilyReportDetails = ({ route, goBack, setScreen }) => {
+  const selectedReportId = route?.params?.reportId;
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +64,14 @@ const FamilyReportDetails = ({ selectedReportId, goBack, setScreen }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Report Details</Text>
         <View style={{ width: 32 }} />
+        <TouchableOpacity
+          onPress={() =>
+            setScreen('notification', { reportId: selectedReportId })
+          }
+          style={styles.backButton}
+        >
+          <Icon name="bell" size={22} color="#333" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView

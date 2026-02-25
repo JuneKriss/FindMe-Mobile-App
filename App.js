@@ -16,6 +16,8 @@ import VolunteerCases from './src/screens/volunteer/VolunteerCases';
 import ReportSightingScreen from './src/screens/volunteer/ReportSightingScreen';
 import FamilySighting from './src/screens/Family/FamilySighting';
 import NotificationScreen from './src/components/notificationScreen';
+import VolunteerCasePreview from './src/screens/volunteer/VolunteerCasePreview';
+import ReportVerificationScreen from './src/screens/Family/ReportVerificationScreen';
 
 export default function App() {
   const [stack, setStack] = useState([{ name: 'Splash', params: {} }]);
@@ -65,7 +67,7 @@ export default function App() {
         <FamilyReportDetails
           setScreen={navigate}
           goBack={goBack}
-          selectedReportId={selectedReportId}
+          route={currentScreen}
         />
       )}
       {currentScreen.name === 'familySighting' && (
@@ -107,7 +109,24 @@ export default function App() {
         />
       )}
       {currentScreen.name === 'notification' && (
-        <NotificationScreen setScreen={navigate} goBack={goBack} />
+        <NotificationScreen
+          setScreen={navigate}
+          goBack={goBack}
+          route={currentScreen}
+        />
+      )}
+      {currentScreen.name === 'volunteerCasePreview' && (
+        <VolunteerCasePreview
+          setScreen={navigate}
+          goBack={goBack}
+          selectedReportId={selectedReportId}
+        />
+      )}
+      {currentScreen.name === 'reportVerify' && (
+        <ReportVerificationScreen
+          {...currentScreen.params}
+          setScreen={navigate}
+        />
       )}
     </View>
   );

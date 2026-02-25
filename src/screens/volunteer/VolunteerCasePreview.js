@@ -2,57 +2,34 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from '@react-native-vector-icons/feather';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getReport } from '../../api/reportApi';
-import { createSighting } from '../../api/sightingApi';
 
-const VolunteerReportDetails = ({ setScreen, goBack, selectedReportId }) => {
+const VolunteerCasePreview = ({ goBack, setScreen, selectedReportId }) => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notes, setNotes] = useState('');
-  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
-      setLoading(true);
       try {
-        const response = await getReport(selectedReportId);
-        setReport(response.data || response);
+        const res = await getReport(selectedReportId);
+        setReport(res.data || res);
       } catch (err) {
-        console.error('Error fetching report', err);
-        Alert.alert('Error', 'Could not load report details.');
+        Alert.alert('Error', 'Could not load case.');
       } finally {
         setLoading(false);
       }
     };
     if (selectedReportId) fetchReport();
   }, [selectedReportId]);
-
-  const handleSendUpdate = async () => {
-    if (!notes.trim()) {
-      return Alert.alert('Missing Field', 'Please enter an update first.');
-    }
-
-    setSending(true);
-    try {
-      await createSighting({ report: selectedReportId, notes });
-      Alert.alert('Success', 'Your update has been submitted.');
-      setNotes('');
-    } catch (err) {
-      console.error('Error sending update:', err);
-      Alert.alert('Error', 'Failed to send update. Try again.');
-    } finally {
-      setSending(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -66,26 +43,18 @@ const VolunteerReportDetails = ({ setScreen, goBack, selectedReportId }) => {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+        <TouchableOpacity onPress={goBack}>
           <Icon name="arrow-left" size={22} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Case Details</Text>
+        <Text style={styles.headerTitle}>Case Preview</Text>
         <View style={{ width: 32 }} />
-        <TouchableOpacity
-          onPress={() =>
-            setScreen('notification', { reportId: selectedReportId })
-          }
-          style={styles.backButton}
-        >
-          <Icon name="bell" size={22} color="#333" />
-        </TouchableOpacity>
       </View>
 
-      {/* Content */}
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 160 }}
       >
+        {/* Missing Person Section */}
         <Section title="Missing Person">
           <Info label="Full Name" value={report.full_name} />
           <Info label="Age" value={report.age} />
@@ -96,6 +65,7 @@ const VolunteerReportDetails = ({ setScreen, goBack, selectedReportId }) => {
           <Info label="Status" value={report.status} status />
         </Section>
 
+        {/* Reporter Section */}
         <Section title="Reporter">
           <Info label="Name" value={report.reporter?.full_name} />
           <Info label="Contact" value={report.reporter?.email} />
@@ -105,6 +75,7 @@ const VolunteerReportDetails = ({ setScreen, goBack, selectedReportId }) => {
           />
         </Section>
 
+        {/* Attachments Section */}
         {report.media?.length > 0 && (
           <Section title="Attachments">
             {report.media.map((file, index) => (
@@ -127,29 +98,12 @@ const VolunteerReportDetails = ({ setScreen, goBack, selectedReportId }) => {
             ))}
           </Section>
         )}
-
-        <TouchableOpacity
-          style={styles.sightingButton}
-          onPress={() =>
-            setScreen('reportSighting', { reportId: selectedReportId })
-          }
-        >
-          <Icon name="eye" size={18} color="#fff" />
-          <Text style={styles.sightingText}>Report a Sighting</Text>
-        </TouchableOpacity>
       </ScrollView>
-
-      {/* Chat Floating Button */}
-      <TouchableOpacity
-        style={styles.chatButton}
-        onPress={() => setScreen('chat', { reportId: selectedReportId })}
-      >
-        <Icon name="message-circle" size={26} color="#fff" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
+// Reusable Section
 const Section = ({ title, children }) => (
   <>
     <View style={styles.sectionHeader}>
@@ -159,6 +113,7 @@ const Section = ({ title, children }) => (
   </>
 );
 
+// Reusable Info row
 const Info = ({ label, value, status }) => (
   <View style={styles.infoRow}>
     <Text style={styles.label}>{label}</Text>
@@ -181,62 +136,39 @@ const Info = ({ label, value, status }) => (
   </View>
 );
 
-export default VolunteerReportDetails;
-
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#f8f9fb',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    justifyContent: 'space-between',
+    padding: 16,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
-  },
-  backButton: {
-    padding: 6,
-    borderRadius: 8,
   },
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '600',
   },
   container: {
-    flex: 1,
     padding: 16,
   },
   sectionHeader: {
-    marginBottom: 6,
-    marginTop: 10,
+    marginTop: 16,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#555',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: '#333',
   },
   card: {
     backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
   },
   leftBorder: {
     borderLeftWidth: 4,
@@ -245,85 +177,56 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginVertical: 4,
   },
   label: {
-    fontSize: 13,
-    color: '#888',
+    fontSize: 14,
+    color: '#555',
   },
   value: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  textArea: {
-    flex: 1,
-    backgroundColor: '#f1f3f6',
-    borderRadius: 8,
-    padding: 10,
     fontSize: 14,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  sendButton: {
-    backgroundColor: '#4266BE',
-    padding: 12,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    color: '#333',
+    fontWeight: '500',
   },
   mediaWrapper: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   mediaImage: {
     width: '100%',
     height: 200,
     borderRadius: 8,
-    marginBottom: 6,
   },
   mediaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eef4ff',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    backgroundColor: '#ecf0f1',
+    padding: 6,
+    borderRadius: 6,
   },
   mediaText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: '#4266BE',
-    fontWeight: '500',
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#333',
   },
-  chatButton: {
-    position: 'absolute',
-    bottom: 60,
-    right: 20,
-    backgroundColor: '#4266BE',
-    borderRadius: 50,
-    padding: 16,
-    elevation: 5,
-  },
-  sightingButton: {
+  assistBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2e86de',
-    borderRadius: 10,
-    paddingVertical: 14,
-    marginTop: 10,
-    gap: 8,
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
   },
-  sightingText: {
+  assistText: {
     color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
+
+export default VolunteerCasePreview;
