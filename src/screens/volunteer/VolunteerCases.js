@@ -20,7 +20,11 @@ const VolunteerCases = ({ setScreen, setSelectedReportId }) => {
   const fetchCases = async () => {
     try {
       const res = await getMyAssistedReports();
-      setCases(res.data);
+
+      // If API returns ReportAssistance objects, unwrap the report
+      const reports = res.data.map(item => (item.report ? item.report : item));
+
+      setCases(reports);
     } catch (err) {
       console.error('Error loading assisted cases:', err);
       Alert.alert('Error', 'Could not load assisted reports.');

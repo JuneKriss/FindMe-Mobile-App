@@ -13,12 +13,12 @@ const HeaderComponent = ({ setScreen, active, role }) => {
             icon: 'clipboard',
             screen: 'volunteerCases',
           },
-          {
-            name: 'notification',
-            label: 'Notification',
-            icon: 'bell',
-            screen: 'notification',
-          },
+          // {
+          //   name: 'notification',
+          //   label: 'Notification',
+          //   icon: 'bell',
+          //   screen: 'notification',
+          // },
           { name: 'logout', label: 'Logout', icon: 'log-out', screen: 'Login' },
         ]
       : [
@@ -29,12 +29,12 @@ const HeaderComponent = ({ setScreen, active, role }) => {
             icon: 'plus-square',
             screen: 'reportCase',
           },
-          {
-            name: 'notification',
-            label: 'Notification',
-            icon: 'bell',
-            screen: 'notification',
-          },
+          // {
+          //   name: 'notification',
+          //   label: 'Notification',
+          //   icon: 'bell',
+          //   screen: 'notification',
+          // },
           { name: 'logout', label: 'Logout', icon: 'log-out', screen: 'Login' },
         ];
 

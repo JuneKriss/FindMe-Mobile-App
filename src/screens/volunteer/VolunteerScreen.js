@@ -152,6 +152,15 @@ const VolunteerHomeScreen = ({ setScreen, setSelectedReportId }) => {
                 {isAssisting ? 'Assisting' : 'Assist'}
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={style.detailsButton}
+              onPress={() => {
+                setSelectedReportId(item.report_id);
+                setScreen('volunteerCasePreview');
+              }}
+            >
+              <Text style={style.detailsText}>View Details</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -343,13 +352,15 @@ const style = StyleSheet.create({
     marginTop: 6,
   },
   assistButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#28a745',
+    paddingVertical: 10,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    alignItems: 'center',
   },
   assistText: {
     color: '#fff',
-    fontSize: 13,
     fontWeight: '600',
   },
   emptyState: {
@@ -360,5 +371,23 @@ const style = StyleSheet.create({
     marginTop: 8,
     color: '#7f8c8d',
     fontSize: 14,
+  },
+  detailsButton: {
+    flex: 1,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#4266BE',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+
+  detailsText: {
+    color: '#4266BE',
+    fontWeight: '600',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 10,
   },
 });
