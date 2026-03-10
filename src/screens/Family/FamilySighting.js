@@ -10,7 +10,7 @@ import {
   Modal,
   Image,
 } from 'react-native';
-import Icon from '@react-native-vector-icons/feather';
+import Icon from 'react-native-vector-icons/Feather';
 import { getSightings } from '../../api/sightingApi';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

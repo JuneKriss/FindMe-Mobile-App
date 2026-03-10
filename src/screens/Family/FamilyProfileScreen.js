@@ -10,7 +10,7 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import Icon from '@react-native-vector-icons/feather';
+import Icon from 'react-native-vector-icons/Feather';
 import { getAccount, createFamilyProfile } from '../../api/accountApi';
 
 const FamilyProfileScreen = ({ setScreen }) => {
@@ -80,6 +80,7 @@ const FamilyProfileScreen = ({ setScreen }) => {
         <TextInput
           style={[styles.input, { height: 80 }]}
           placeholder="Address"
+          placeholderTextColor="#888"
           multiline
           value={form.address}
           onChangeText={text => setForm({ ...form, address: text })}
@@ -90,6 +91,7 @@ const FamilyProfileScreen = ({ setScreen }) => {
         <TextInput
           style={styles.input}
           placeholder="Contact Number"
+          placeholderTextColor="#888"
           keyboardType="phone-pad"
           value={form.contact_num}
           onChangeText={text => setForm({ ...form, contact_num: text })}
@@ -142,6 +144,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     fontSize: 16,
+    color: '#000', 
   },
   button: {
     backgroundColor: '#015dec',
